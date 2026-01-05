@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IvoireFacture Elite | SaaS BTP & Commerce</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand: #FF8200; --brand-light: #fff4e6; --success: #009B48;
+            --dark: #0f172a; --slate-100: #f1f5f9; --slate-400: #94a3b8; --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; transition: all 0.2s ease; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--slate-100); margin: 0; display: flex; min-height: 100vh; }
+
+        /* --- SIDEBAR --- */
+        nav {
+            width: 280px; background: var(--dark); padding: 30px 20px; display: flex; flex-direction: column;
+            color: white; position: fixed; height: 100vh; z-index: 1000;
+        }
+        .app-logo { font-size: 22px; font-weight: 800; margin-bottom: 40px; }
+        .app-logo span { color: var(--brand); }
+        .nav-link {
+            padding: 14px 18px; border-radius: 12px; cursor: pointer; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 12px; font-weight: 500; color: #94a3b8;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--brand); color: white; box-shadow: 0 10px 15px -3px rgba(255, 130, 0, 0.3); }
+
+        /* --- CONTENT --- */
+        main { flex: 1; margin-left: 280px; padding: 40px; }
+        .page { display: none; animation: fadeIn 0.4s ease-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- INVOICE DESIGN --- */
+        .invoice-card {
+            background: var(--white); padding: 60px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.08);
+            position: relative; max-width: 900px; margin: 0 auto;
+        }
+        .invoice-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 8px; background: var(--brand); }
+
+        .header-top { display: flex; justify-content: space-between; margin-bottom: 50px; }
+        .logo-box { width: 150px; height: 80px; border: 2px dashed var(--slate-400); border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
+        .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        input, textarea, select { border: none; outline: none; font-family: inherit; font-size: 14px; width: 100%; padding: 5px; }
+        input:focus { background: var(--slate-100); border-radius: 4px; }
+
+        table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+        th { text-align: left; padding: 15px; color: var(--slate-400); font-size: 11px; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid var(--slate-100); }
+
+        /* --- SIGNATURE MODULE --- */
+        .signature-area {
+            width: 250px; height: 120px; border: 1px solid var(--slate-100); background: #fafafa;
+            border-radius: 8px; position: relative; cursor: crosshair;
+        }
+        canvas#sig-canvas { width: 100%; height: 100%; touch-action: none; }
+        .sig-tools { display: flex; gap: 10px; margin-top: 5px; }
+        .btn-sig { font-size: 10px; background: #eee; border: none; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
+
+        /* --- STATS --- */
+        .grid-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .stat-card { background: white; padding: 25px; border-radius: 16px; border-left: 5px solid var(--brand); }
+
+        /* --- FLOATING BAR --- */
+        .action-bar {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-10%);
+            background: var(--dark); padding: 12px 30px; border-radius: 50px;
+            display: flex; gap: 20px; z-index: 2000; box-shadow: 0 20px 25px rgba(0,0,0,0.3);
+        }
+        .btn-f { background: transparent; border: none; color: white; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+
+        @media print {
+            nav, .action-bar, .no-print, .sig-tools { display: none !important; }
+            main { margin: 0; padding: 0; }
+            .invoice-card { box-shadow: none; padding: 0; width: 100%; }
+        }
+
+        @media (max-width: 900px) {
+            nav { width: 70px; padding: 20px 10px; }
+            nav span, .nav-link span { display: none; }
+            main { margin-left: 70px; padding: 20px; }
+            .grid-stats { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="app-logo">💼 <span>Ivoire</span>Facture</div>
+    <div class="nav-link active" onclick="showP('editor', this)"><i>📝</i> <span>Document</span></div>
+    <div class="nav-link" onclick="showP('dash', this)"><i>📊</i> <span>Stats</span></div>
+    <div class="nav-link" onclick="showP('cat', this)"><i>⭐</i> <span>Catalogue</span></div>
+    
+    <div style="margin-top:auto; padding:15px; background:rgba(255,255,255,0.05); border-radius:12px;">
+        <p style="font-size:10px; font-weight:800; margin-bottom:10px;">THÈME MARQUE</p>
+        <input type="color" value="#FF8200" oninput="changeT(this.value)" style="width:100%; border:none; height:30px; cursor:pointer; background:transparent;">
+    </div>
+</nav>
+
+<main>
+    <div id="editor" class="page active">
+        <div class="invoice-card" id="invoice">
+            <div class="header-top">
+                <div class="company-side">
+                    <div class="logo-box" onclick="document.getElementById('logo-f').click()">
+                        <img id="logo-img" src="" style="display:none;">
+                        <span id="logo-t" style="color:var(--brand); font-weight:800; font-size:12px;">+ LOGO</span>
+                    </div>
+                    <input type="file" id="logo-f" hidden onchange="handleL(event)">
+                    <div style="margin-top:20px;">
+                        <input type="text" placeholder="NOM DE L'ENTREPRISE" style="font-size:22px; font-weight:800;">
+                        <input type="text" placeholder="NCC / RCCM" style="color:var(--success); font-weight:600;">
+                        <textarea rows="2" placeholder="Adresse, Abidjan&#10;Tél: +225..."></textarea>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <select id="docT" onchange="upUI()" style="color:var(--brand); font-weight:800; font-size:16px;">
+                        <option value="FACTURE">FACTURE</option>
+                        <option value="DEVIS">DEVIS</option>
+                    </select>
+                    <input type="text" value="REF-2026-001" style="text-align:right; font-weight:800; font-size:24px; margin-top:10px;">
+                    <input type="date" id="dateI" style="text-align:right; color:var(--slate-400);">
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-bottom:30px;">
+                <div><label style="font-size:10px; font-weight:800; color:var(--slate-400);">DESTINATAIRE</label>
+                <textarea rows="3" placeholder="Nom du Client&#10;Contact" style="font-weight:600; font-size:15px;"></textarea></div>
+                <div><label style="font-size:10px; font-weight:800; color:var(--slate-400);">OBJET DU MARCHÉ</label>
+                <textarea rows="3" placeholder="Ex: Travaux de peinture Riviera"></textarea></div>
+            </div>
+
+            <table>
+                <thead><tr><th>Désignation</th><th>Qté</th><th>P.U. HT</th><th style="text-align:right;">Total</th></tr></thead>
+                <tbody id="i-items">
+                    <tr>
+                        <td><input type="text" placeholder="Service ou Produit" class="r-desc"></td>
+                        <td><input type="number" value="1" class="r-qty" oninput="cal()"></td>
+                        <td><input type="number" value="0" class="r-pu" oninput="cal()"></td>
+                        <td style="text-align:right; font-weight:700;" class="r-tot">0</td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="no-print" onclick="addR()" style="width:100%; border:1px dashed #ccc; padding:10px; cursor:pointer; background:none;">+ Ajouter une ligne</button>
+
+            <div style="display:flex; justify-content:space-between; margin-top:40px;">
+                <div style="flex:1;">
+                    <label style="font-size:10px; font-weight:800; color:var(--slate-400);">RÈGLEMENT MOBILE MONEY</label>
+                    <input type="text" placeholder="Wave / Orange : 07 00 00 00 00" style="background:var(--slate-100); padding:10px; border-radius:8px; margin-top:5px;">
+                </div>
+                <div style="width:280px;">
+                    <div style="display:flex; justify-content:space-between; padding:5px 0;"><span>Sous-Total</span><span id="s-ht">0 FCFA</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:5px 0;"><span>TVA (18%)</span><span id="s-tva">0 FCFA</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:15px; background:var(--dark); color:white; border-radius:12px; margin-top:10px; font-weight:800;">
+                        <span>TOTAL</span><span id="s-ttc">0 FCFA</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:50px; display:flex; justify-content:flex-end;">
+                <div style="text-align:center;">
+                    <p style="font-size:12px; font-weight:700; margin-bottom:10px;">Signature & Cachet</p>
+                    <div class="signature-area">
+                        <canvas id="sig-canvas"></canvas>
+                    </div>
+                    <div class="sig-tools no-print">
+                        <button class="btn-sig" onclick="clearSig()">Effacer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dash" class="page">
+        <h2 style="font-weight:800;">Tableau de Bord 2026</h2>
+        <div class="grid-stats">
+            <div class="stat-card"><small>Chiffre d'Affaires</small><p id="st-ca">0 FCFA</p></div>
+            <div class="stat-card"><small>Documents Émis</small><p id="st-co">0</p></div>
+        </div>
+    </div>
+</main>
+
+<div class="action-bar no-print">
+    <button class="btn-f" onclick="window.location.reload()">🔄 Nouveau</button>
+    <button class="btn-f" onclick="shareW()">📱 WhatsApp</button>
+    <button class="btn-f btn-f-primary" onclick="pr()">💾 Imprimer / PDF</button>
+</div>
+
+<script>
+    // --- SIGNATURE LOGIC ---
+    const canvas = document.getElementById('sig-canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (e.clientX || e.touches[0].clientX) - rect.left,
+            y: (e.clientY || e.touches[0].clientY) - rect.top
+        };
+    }
+
+    function start(e) { drawing = true; draw(e); }
+    function stop() { drawing = false; ctx.beginPath(); }
+    function draw(e) {
+        if (!drawing) return;
+        const pos = getPos(e);
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+    }
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); start(e); });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+    canvas.addEventListener('touchend', stop);
+
+    function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+    // --- APP LOGIC ---
+    document.getElementById('dateI').valueAsDate = new Date();
+    let stats = JSON.parse(localStorage.getItem('iv_stats')) || { ca: 0, co: 0 };
+
+    function showP(id, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        el.classList.add('active');
+        if(id === 'dash') renderS();
+    }
+
+    function changeT(c) { document.documentElement.style.setProperty('--brand', c); localStorage.setItem('iv_t', c); }
+    if(localStorage.getItem('iv_t')) changeT(localStorage.getItem('iv_t'));
+
+    function addR() {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><input type="text" placeholder="Description" class="r-desc"></td>
+            <td><input type="number" value="1" class="r-qty" oninput="cal()"></td>
+            <td><input type="number" value="0" class="r-pu" oninput="cal()"></td>
+            <td style="text-align:right; font-weight:700;" class="r-tot">0</td>`;
+        document.getElementById('i-items').appendChild(tr);
+    }
+
+    function cal() {
+        let ht = 0;
+        document.querySelectorAll('#i-items tr').forEach(tr => {
+            const q = tr.querySelector('.r-qty').value || 0;
+            const p = tr.querySelector('.r-pu').value || 0;
+            const t = q * p;
+            tr.querySelector('.r-tot').innerText = t.toLocaleString();
+            ht += t;
+        });
+        const tva = ht * 0.18;
+        document.getElementById('s-ht').innerText = ht.toLocaleString() + " FCFA";
+        document.getElementById('s-tva').innerText = tva.toLocaleString() + " FCFA";
+        document.getElementById('s-ttc').innerText = (ht + tva).toLocaleString() + " FCFA";
+    }
+
+    function pr() {
+        const t = parseFloat(document.getElementById('s-ttc').innerText.replace(/\s/g, ''));
+        stats.ca += t; stats.co += 1;
+        localStorage.setItem('iv_stats', JSON.stringify(stats));
+        window.print();
+    }
+
+    function renderS() {
+        document.getElementById('st-ca').innerText = stats.ca.toLocaleString() + " FCFA";
+        document.getElementById('st-co').innerText = stats.co;
+    }
+
+    function handleL(e) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            document.getElementById('logo-img').src = reader.result;
+            document.getElementById('logo-img').style.display = 'block';
+            document.getElementById('logo-t').style.display = 'none';
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    }
+
+    function shareW() {
+        const t = document.getElementById('s-ttc').innerText;
+        window.open(`https://wa.me/?text=${encodeURIComponent("Bonjour, voici votre facture d'un montant de " + t + ". Merci de votre confiance.")}`);
+    }
+</script>
+</body>
+</html>
